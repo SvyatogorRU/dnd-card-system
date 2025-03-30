@@ -1,31 +1,38 @@
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+'use strict';
 
-const UserSchema = new Schema({
-  discordId: {
-    type: String,
-    required: true,
-    unique: true
-  },
-  username: {
-    type: String,
-    required: true
-  },
-  avatar: {
-    type: String
-  },
-  isAdmin: {
-    type: Boolean,
-    default: false
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  lastLogin: {
-    type: Date,
-    default: Date.now
-  }
-});
+module.exports = (sequelize, DataTypes) => {
+  const User = sequelize.define('User', {
+    discordId: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true
+    },
+    username: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    avatar: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    isAdmin: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
+    },
+    lastLogin: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW
+    }
+  }, {
+    timestamps: true
+  });
 
-module.exports = mongoose.model('User', UserSchema);
+  User.associate = function(models) {
+    // Определим ассоциации
+    User.hasMany(models.Card, { foreignKey: 'userId', as: 'cards' });
+    User.belongsToMany(models.Role, { through: 'UserRoles', foreignKey: 'userId', as: 'roles' });
+    User.belongsToMany(models.Group, { through: 'GroupMembers', foreignKey: 'userId', as: 'groups' });
+  };
+
+  return User;
+};

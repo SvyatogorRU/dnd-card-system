@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Container, Box, Typography, Button, CircularProgress, 
-  Paper, Grid, Divider, Chip, IconButton 
+  Paper, Grid, Divider, Chip, IconButton, Alert 
 } from '@mui/material';
 import { 
   Edit as EditIcon, 
@@ -17,7 +17,7 @@ import { useAuth } from '../context/AuthContext';
 const CardDetail = () => {
   const { cardId } = useParams();
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isDungeonMaster } = useAuth();
   const [card, setCard] = useState(null);
   const [fields, setFields] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,12 +27,13 @@ const CardDetail = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [cardData, fieldsData] = await Promise.all([
-          getCard(cardId),
-          getAllFields()
-        ]);
+        const cardData = await getCard(cardId);
         setCard(cardData);
+        
+        // Загружаем поля для этого типа карточки
+        const fieldsData = await getAllFields(cardData.type);
         setFields(fieldsData);
+        
         setError(null);
       } catch (err) {
         console.error('Ошибка загрузки данных:', err);
@@ -50,7 +51,17 @@ const CardDetail = () => {
     if (window.confirm('Вы уверены, что хотите удалить эту карточку?')) {
       try {
         await deleteCard(cardId);
-        navigate('/dashboard');
+        
+        // Перенаправление на соответствующую страницу в зависимости от типа карточки
+        if (card.type === 'character') {
+          navigate('/characters');
+        } else if (card.type === 'npc') {
+          navigate('/npcs');
+        } else if (card.type === 'item') {
+          navigate('/items');
+        } else {
+          navigate('/dashboard');
+        }
       } catch (err) {
         console.error('Ошибка удаления карточки:', err);
         setError('Не удалось удалить карточку. Пожалуйста, попробуйте позже.');
@@ -59,10 +70,9 @@ const CardDetail = () => {
   };
 
   // Функция для получения значения поля
-  const getFieldValue = (fieldId) => {
-    if (!card || !card.fields) return null;
-    const fieldEntry = card.fields.find(field => field.fieldId === fieldId);
-    return fieldEntry ? fieldEntry.value : null;
+  const getFieldValue = (key) => {
+    if (!card || !card.content) return null;
+    return card.content[key];
   };
 
   // Функция для форматирования значения поля
@@ -80,7 +90,46 @@ const CardDetail = () => {
   };
 
   // Проверка прав на редактирование
-  const canEdit = card && (isAdmin || (user && user._id === card.userId));
+  const canEdit = () => {
+    if (!card) return false;
+    if (isAdmin) return true;
+    if (isDungeonMaster) {
+      // DM может редактировать NPC и предметы, а также карточки персонажей (но не удалять их)
+      return true;
+    }
+    // Обычный пользователь может редактировать только свои карточки
+    return user?.id === card.userId;
+  };
+
+  // Проверка прав на удаление
+  const canDelete = () => {
+    if (!card) return false;
+    if (isAdmin) return true;
+    if (isDungeonMaster && card.type !== 'character') {
+      // DM может удалять только NPC и предметы
+      return true;
+    }
+    // Обычный пользователь может удалять только свои карточки
+    return user?.id === card.userId;
+  };
+
+  // Получение ссылки для редактирования в зависимости от типа карточки
+  const getEditLink = () => {
+    if (!card) return '/';
+    if (card.type === 'character') return `/characters/${cardId}/edit`;
+    if (card.type === 'npc') return `/npcs/${cardId}/edit`;
+    if (card.type === 'item') return `/items/${cardId}/edit`;
+    return `/dashboard`;
+  };
+
+  // Получение ссылки для возврата в зависимости от типа карточки
+  const getBackLink = () => {
+    if (!card) return '/dashboard';
+    if (card.type === 'character') return '/characters';
+    if (card.type === 'npc') return '/npcs';
+    if (card.type === 'item') return '/items';
+    return '/dashboard';
+  };
 
   if (loading) {
     return (
@@ -93,7 +142,7 @@ const CardDetail = () => {
   if (error) {
     return (
       <Container maxWidth="md" sx={{ mt: 4 }}>
-        <Typography color="error">{error}</Typography>
+        <Alert severity="error">{error}</Alert>
         <Button 
           variant="contained" 
           component={Link} 
@@ -109,7 +158,7 @@ const CardDetail = () => {
   if (!card) {
     return (
       <Container maxWidth="md" sx={{ mt: 4 }}>
-        <Typography variant="h5">Карточка не найдена</Typography>
+        <Alert severity="warning">Карточка не найдена</Alert>
         <Button 
           variant="contained" 
           component={Link} 
@@ -149,24 +198,26 @@ const CardDetail = () => {
             </Box>
           </Box>
           
-          {canEdit && (
-            <Box>
+          <Box>
+            {canEdit() && (
               <IconButton 
                 component={Link} 
-                to={`/cards/${cardId}/edit`} 
+                to={getEditLink()} 
                 color="primary"
                 sx={{ mr: 1 }}
               >
                 <EditIcon />
               </IconButton>
+            )}
+            {canDelete() && (
               <IconButton 
                 onClick={handleDelete}
                 color="error"
               >
                 <DeleteIcon />
               </IconButton>
-            </Box>
-          )}
+            )}
+          </Box>
         </Box>
 
         <Divider sx={{ mb: 4 }} />
@@ -176,7 +227,7 @@ const CardDetail = () => {
           // Фильтрация полей этой категории, у которых есть значения в карточке
           const categoryFields = fields
             .filter(field => field.category === category)
-            .filter(field => getFieldValue(field._id) !== null || field.required)
+            .filter(field => getFieldValue(field.key) !== null || field.required)
             .sort((a, b) => a.order - b.order);
 
           if (categoryFields.length === 0) return null;
@@ -189,13 +240,13 @@ const CardDetail = () => {
               
               <Grid container spacing={2}>
                 {categoryFields.map(field => (
-                  <Grid item xs={12} sm={6} key={field._id}>
+                  <Grid item xs={12} sm={6} key={field.id}>
                     <Box sx={{ mb: 2 }}>
                       <Typography variant="subtitle2" color="text.secondary">
                         {field.name}
                       </Typography>
                       <Typography variant="body1">
-                        {formatFieldValue(field, getFieldValue(field._id))}
+                        {formatFieldValue(field, getFieldValue(field.key))}
                       </Typography>
                     </Box>
                   </Grid>
@@ -209,9 +260,9 @@ const CardDetail = () => {
           <Button 
             variant="outlined" 
             component={Link} 
-            to="/dashboard"
+            to={getBackLink()}
           >
-            Вернуться к списку карточек
+            Вернуться к списку
           </Button>
         </Box>
       </Paper>

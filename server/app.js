@@ -9,6 +9,7 @@ const authRoutes = require('./routes/auth');
 const cardRoutes = require('./routes/card');
 const adminRoutes = require('./routes/admin');
 const userRoutes = require('./routes/user');
+const groupRoutes = require('./routes/group');
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/cards', cardRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/groups', groupRoutes);
 
 // Обработка ошибок
 app.use((err, req, res, next) => {

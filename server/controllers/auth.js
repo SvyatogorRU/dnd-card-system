@@ -1,6 +1,6 @@
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const { User, Role } = require('../models');
 
 // Авторизация через Discord
 exports.discordAuth = async (req, res) => {
@@ -43,9 +43,16 @@ exports.discordAuth = async (req, res) => {
     const isAdmin = discordId === process.env.ADMIN_DISCORD_ID;
 
     // Поиск или создание пользователя
-    let user = await User.findOne({ discordId });
+    let [user, created] = await User.findOrCreate({
+      where: { discordId },
+      defaults: {
+        username,
+        avatar,
+        isAdmin
+      }
+    });
 
-    if (user) {
+    if (!created) {
       // Обновление существующего пользователя
       user.username = username;
       user.avatar = avatar;
@@ -55,21 +62,28 @@ exports.discordAuth = async (req, res) => {
       if (isAdmin && !user.isAdmin) {
         user.isAdmin = true;
       }
-    } else {
-      // Создание нового пользователя
-      user = new User({
-        discordId,
-        username,
-        avatar,
-        isAdmin
-      });
+      
+      await user.save();
     }
 
-    await user.save();
+    // Если пользователь администратор, добавляем роль администратора
+    if (isAdmin) {
+      const adminRole = await Role.findOne({ where: { name: 'Administrator' } });
+      if (adminRole) {
+        await user.addRole(adminRole);
+      }
+    }
+
+    // Получаем роли пользователя
+    const userRoles = await user.getRoles();
+    const roles = userRoles.map(role => ({
+      id: role.id,
+      name: role.name
+    }));
 
     // Создание JWT токена
     const token = jwt.sign(
-      { userId: user._id, isAdmin: user.isAdmin },
+      { userId: user.id, isAdmin: user.isAdmin },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -77,10 +91,11 @@ exports.discordAuth = async (req, res) => {
     res.json({
       token,
       user: {
-        id: user._id,
+        id: user.id,
         username: user.username,
         avatar: user.avatar,
-        isAdmin: user.isAdmin
+        isAdmin: user.isAdmin,
+        roles
       }
     });
   } catch (error) {
@@ -92,11 +107,30 @@ exports.discordAuth = async (req, res) => {
 // Проверка текущего пользователя
 exports.getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.userId).select('-__v');
+    const user = await User.findByPk(req.userId, {
+      include: [
+        {
+          model: Role,
+          as: 'roles',
+          through: { attributes: [] }
+        }
+      ]
+    });
+    
     if (!user) {
       return res.status(404).json({ message: 'Пользователь не найден' });
     }
-    res.json(user);
+    
+    res.json({
+      id: user.id,
+      username: user.username,
+      avatar: user.avatar,
+      isAdmin: user.isAdmin,
+      roles: user.roles.map(role => ({
+        id: role.id,
+        name: role.name
+      }))
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Ошибка сервера' });

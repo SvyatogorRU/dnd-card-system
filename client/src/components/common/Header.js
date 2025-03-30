@@ -1,12 +1,13 @@
 import React from 'react';
-import { AppBar, Toolbar, Typography, Button, IconButton, Menu, MenuItem, Avatar } from '@mui/material';
+import { AppBar, Toolbar, Typography, Button, IconButton, Menu, MenuItem, Avatar, Box, Divider } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const Header = () => {
-  const { user, isAuthenticated, isAdmin, logout } = useAuth();
+  const { user, isAuthenticated, isAdmin, isDungeonMaster, hasRole, logout } = useAuth();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = React.useState(null);
+  const [menuAnchorEl, setMenuAnchorEl] = React.useState(null);
 
   const handleMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -14,6 +15,14 @@ const Header = () => {
 
   const handleMenuClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleNavMenuOpen = (event) => {
+    setMenuAnchorEl(event.currentTarget);
+  };
+
+  const handleNavMenuClose = () => {
+    setMenuAnchorEl(null);
   };
 
   const handleLogout = () => {
@@ -31,13 +40,43 @@ const Header = () => {
 
         {isAuthenticated ? (
           <>
-            <Button component={Link} to="/dashboard" color="inherit">
-              Мои карточки
+            <Button color="inherit" onClick={handleNavMenuOpen}>
+              Карточки
+            </Button>
+            <Menu
+              anchorEl={menuAnchorEl}
+              open={Boolean(menuAnchorEl)}
+              onClose={handleNavMenuClose}
+            >
+              <MenuItem 
+                onClick={() => { handleNavMenuClose(); navigate('/characters'); }}
+              >
+                Персонажи
+              </MenuItem>
+              
+              {(isDungeonMaster || hasRole('Card Creator') || isAdmin) && (
+                <>
+                  <MenuItem 
+                    onClick={() => { handleNavMenuClose(); navigate('/npcs'); }}
+                  >
+                    NPC
+                  </MenuItem>
+                  <MenuItem 
+                    onClick={() => { handleNavMenuClose(); navigate('/items'); }}
+                  >
+                    Предметы
+                  </MenuItem>
+                </>
+              )}
+            </Menu>
+            
+            <Button component={Link} to="/groups" color="inherit">
+              Группы
             </Button>
             
             {isAdmin && (
               <Button component={Link} to="/admin" color="inherit">
-                Админ-панель
+                Администрирование
               </Button>
             )}
             
@@ -56,8 +95,20 @@ const Header = () => {
               open={Boolean(anchorEl)}
               onClose={handleMenuClose}
             >
-              <MenuItem onClick={handleMenuClose} component={Link} to="/profile">
+              <Box sx={{ px: 2, py: 1 }}>
+                <Typography variant="subtitle1">{user?.username}</Typography>
+                {user?.roles && (
+                  <Typography variant="body2" color="text.secondary">
+                    {user.roles.map(role => role.name).join(', ')}
+                  </Typography>
+                )}
+              </Box>
+              <Divider />
+              <MenuItem onClick={() => { handleMenuClose(); navigate('/profile'); }}>
                 Профиль
+              </MenuItem>
+              <MenuItem onClick={() => { handleMenuClose(); navigate('/dashboard'); }}>
+                Мои карточки
               </MenuItem>
               <MenuItem onClick={handleLogout}>
                 Выйти

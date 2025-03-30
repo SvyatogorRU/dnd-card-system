@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const { User, Role } = require('../models');
 
 module.exports = async (req, res, next) => {
   try {
@@ -13,14 +13,23 @@ module.exports = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
     // Поиск пользователя
-    const user = await User.findById(decoded.userId);
+    const user = await User.findByPk(decoded.userId, {
+      include: [
+        {
+          model: Role,
+          as: 'roles',
+          through: { attributes: [] }
+        }
+      ]
+    });
+    
     if (!user) {
       return res.status(401).json({ message: 'Пользователь не найден' });
     }
 
     // Сохранение информации о пользователе
     req.user = user;
-    req.userId = user._id;
+    req.userId = user.id;
     
     next();
   } catch (error) {

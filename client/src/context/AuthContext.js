@@ -13,6 +13,18 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Проверка наличия ролей у пользователя
+  const hasRole = (roleName) => {
+    if (!user || !user.roles) return false;
+    return user.roles.some(role => role.name === roleName);
+  };
+
+  // Проверка наличия хотя бы одной из ролей
+  const hasAnyRole = (roleNames) => {
+    if (!user || !user.roles) return false;
+    return roleNames.some(roleName => hasRole(roleName));
+  };
+
   // Загрузка пользователя при инициализации
   useEffect(() => {
     const loadUser = async () => {
@@ -60,6 +72,11 @@ export const AuthProvider = ({ children }) => {
     error,
     isAuthenticated: !!user,
     isAdmin: user?.isAdmin || false,
+    isDungeonMaster: hasRole('Dungeon Master'),
+    isCardCreator: hasRole('Card Creator'),
+    isGroupCaptain: hasRole('Group Captain'),
+    hasRole,
+    hasAnyRole,
     logout,
   };
 

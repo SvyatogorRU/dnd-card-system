@@ -1,35 +1,44 @@
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+'use strict';
 
-const CardSchema = new Schema({
-  userId: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  name: {
-    type: String,
-    required: true
-  },
-  fields: [{
-    fieldId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Field'
+module.exports = (sequelize, DataTypes) => {
+  const Card = sequelize.define('Card', {
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false
     },
-    value: Schema.Types.Mixed
-  }],
-  public: {
-    type: Boolean,
-    default: false
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
-  }
-});
+    type: {
+      type: DataTypes.ENUM('character', 'npc', 'item'),
+      allowNull: false,
+      defaultValue: 'character'
+    },
+    content: {
+      type: DataTypes.JSONB,
+      defaultValue: {}
+    },
+    public: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
+    }
+  }, {
+    timestamps: true
+  });
 
-module.exports = mongoose.model('Card', CardSchema);
+  Card.associate = function(models) {
+    Card.belongsTo(models.User, { foreignKey: 'userId', as: 'owner' });
+    Card.belongsToMany(models.Card, { 
+      through: 'CardRelations', 
+      as: 'linkedItems', 
+      foreignKey: 'cardId', 
+      otherKey: 'linkedCardId' 
+    });
+    Card.belongsToMany(models.Card, { 
+      through: 'CardRelations', 
+      as: 'linkedToCards', 
+      foreignKey: 'linkedCardId', 
+      otherKey: 'cardId' 
+    });
+    Card.belongsToMany(models.Group, { through: 'GroupCards', foreignKey: 'cardId', as: 'groups' });
+  };
+
+  return Card;
+};

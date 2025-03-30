@@ -30,6 +30,17 @@ export const getUserCards = async () => {
   }
 };
 
+// Получение карточек определенного типа
+export const getCardsByType = async (type) => {
+  try {
+    const response = await cardsApi.get(`/type/${type}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Ошибка получения карточек типа ${type}:`, error);
+    throw error;
+  }
+};
+
 // Получение конкретной карточки
 export const getCard = async (cardId) => {
   try {
@@ -76,6 +87,7 @@ export const deleteCard = async (cardId) => {
 
 export default {
   getUserCards,
+  getCardsByType,
   getCard,
   createCard,
   updateCard,
