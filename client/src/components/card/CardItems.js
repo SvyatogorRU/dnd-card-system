@@ -81,11 +81,16 @@ const CardItems = ({ card, isEditable }) => {
 
   // Открытие диалога редактирования предмета
   const handleOpenEditDialog = (item) => {
+    if (!item || !item.CardItem) {
+      console.error('Ошибка: item или item.CardItem отсутствует', item);
+      return;
+    }
+    
     setSelectedItem(item);
     setFormValues({
       itemId: item.id,
-      quantity: item.CardItem.quantity,
-      equipped: item.CardItem.equipped,
+      quantity: item.CardItem.quantity || 1,
+      equipped: item.CardItem.equipped || false,
       notes: item.CardItem.notes || ''
     });
     setEditDialogOpen(true);
@@ -271,7 +276,7 @@ const CardItems = ({ card, isEditable }) => {
                       <Typography variant="subtitle1" component="span">
                         {item.name}
                       </Typography>
-                      {item.CardItem.quantity > 1 && (
+                      {item.CardItem && item.CardItem.quantity > 1 && (
                         <Chip 
                           label={`x${item.CardItem.quantity}`} 
                           size="small" 
@@ -279,7 +284,7 @@ const CardItems = ({ card, isEditable }) => {
                           sx={{ ml: 1 }}
                         />
                       )}
-                      {item.CardItem.equipped && (
+                      {item.CardItem && item.CardItem.equipped && (
                         <Chip 
                           label="Экипировано" 
                           size="small" 
@@ -291,7 +296,7 @@ const CardItems = ({ card, isEditable }) => {
                   }
                   secondary={
                     <>
-                      {item.content.item_type && (
+                      {item.content && item.content.item_type && (
                         <Typography
                           component="span"
                           variant="body2"
@@ -302,7 +307,7 @@ const CardItems = ({ card, isEditable }) => {
                           {item.content.rarity && ` | Редкость: ${item.content.rarity}`}
                         </Typography>
                       )}
-                      {item.CardItem.notes && (
+                      {item.CardItem && item.CardItem.notes && (
                         <Typography
                           component="span"
                           variant="body2"
@@ -373,12 +378,12 @@ const CardItems = ({ card, isEditable }) => {
                     >
                       <CardContent>
                         <Typography variant="h6">{item.name}</Typography>
-                        {item.content.item_type && (
+                        {item.content && item.content.item_type && (
                           <Typography variant="body2">
                             Тип: {item.content.item_type}
                           </Typography>
                         )}
-                        {item.content.rarity && (
+                        {item.content && item.content.rarity && (
                           <Typography variant="body2">
                             Редкость: {item.content.rarity}
                           </Typography>

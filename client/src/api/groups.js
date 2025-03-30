@@ -135,3 +135,69 @@ export const removeItemFromGroup = async (groupId, itemId) => {
     const response = await groupsApi.delete(`/${groupId}/items/${itemId}`);
     return response.data;
   } catch (error) {
+    console.error('Ошибка удаления предмета из группы:', error);
+    throw error;
+  }
+};
+
+// Получение заметок группы
+export const getGroupNotes = async (groupId) => {
+  try {
+    const response = await groupsApi.get(`/${groupId}/notes`);
+    return response.data;
+  } catch (error) {
+    console.error('Ошибка получения заметок группы:', error);
+    throw error;
+  }
+};
+
+// Создание заметки группы
+export const createGroupNote = async (groupId, noteData) => {
+  try {
+    const response = await groupsApi.post(`/${groupId}/notes`, noteData);
+    return response.data;
+  } catch (error) {
+    console.error('Ошибка создания заметки группы:', error);
+    throw error;
+  }
+};
+
+// Обновление заметки группы
+export const updateGroupNote = async (groupId, noteId, noteData) => {
+  try {
+    const response = await groupsApi.put(`/${groupId}/notes/${noteId}`, noteData);
+    return response.data;
+  } catch (error) {
+    console.error('Ошибка обновления заметки группы:', error);
+    throw error;
+  }
+};
+
+// Удаление заметки группы
+export const deleteGroupNote = async (groupId, noteId) => {
+  try {
+    const response = await groupsApi.delete(`/${groupId}/notes/${noteId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Ошибка удаления заметки группы:', error);
+    throw error;
+  }
+};
+
+export default {
+  getUserGroups,
+  getGroup,
+  createGroup,
+  updateGroup,
+  addUserToGroup,
+  removeUserFromGroup,
+  getGroupBank,
+  updateGroupBank,
+  getGroupItems,
+  addItemToGroup,
+  removeItemFromGroup,
+  getGroupNotes,
+  createGroupNote,
+  updateGroupNote,
+  deleteGroupNote
+};

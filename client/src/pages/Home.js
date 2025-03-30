@@ -145,6 +145,81 @@ const Home = () => {
                   <Card sx={{ height: '100%' }}>
                     <CardContent>
                       <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
+                        <Avatar sx={{ bgcolor: 'primary.main' }}>
+                          <PersonIcon />
+                        </Avatar>
+                      </Box>
+                      <Typography variant="h6" align="center" gutterBottom>
+                        Персонажи
+                      </Typography>
+                      <Typography variant="body2" align="center" color="text.secondary">
+                        Управление вашими персонажами, просмотр характеристик и инвентаря.
+                      </Typography>
+                      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                        <Button component={Link} to="/characters" variant="outlined" size="small">
+                          Перейти
+                        </Button>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                
+                {/* Секция для NPC (только для DM и админов) */}
+                {(isDungeonMaster || isAdmin || hasRole('Card Creator')) && (
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Card sx={{ height: '100%' }}>
+                      <CardContent>
+                        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
+                          <Avatar sx={{ bgcolor: 'secondary.main' }}>
+                            <ViewListIcon />
+                          </Avatar>
+                        </Box>
+                        <Typography variant="h6" align="center" gutterBottom>
+                          NPC
+                        </Typography>
+                        <Typography variant="body2" align="center" color="text.secondary">
+                          Создание и управление неигровыми персонажами для ваших кампаний.
+                        </Typography>
+                        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                          <Button component={Link} to="/npcs" variant="outlined" size="small">
+                            Перейти
+                          </Button>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                )}
+                
+                {/* Секция для предметов (только для DM и админов) */}
+                {(isDungeonMaster || isAdmin || hasRole('Card Creator')) && (
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Card sx={{ height: '100%' }}>
+                      <CardContent>
+                        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
+                          <Avatar sx={{ bgcolor: 'info.main' }}>
+                            <GavelIcon />
+                          </Avatar>
+                        </Box>
+                        <Typography variant="h6" align="center" gutterBottom>
+                          Предметы
+                        </Typography>
+                        <Typography variant="body2" align="center" color="text.secondary">
+                          Создание и управление предметами, оружием, артефактами и магическими вещами.
+                        </Typography>
+                        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                          <Button component={Link} to="/items" variant="outlined" size="small">
+                            Перейти
+                          </Button>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                )}
+                
+                <Grid item xs={12} sm={6} md={4}>
+                  <Card sx={{ height: '100%' }}>
+                    <CardContent>
+                      <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
                         <Avatar sx={{ bgcolor: 'success.main' }}>
                           <GroupIcon />
                         </Avatar>
@@ -404,79 +479,4 @@ const Home = () => {
   );
 };
 
-export default Home;: 'primary.main' }}>
-                          <PersonIcon />
-                        </Avatar>
-                      </Box>
-                      <Typography variant="h6" align="center" gutterBottom>
-                        Персонажи
-                      </Typography>
-                      <Typography variant="body2" align="center" color="text.secondary">
-                        Управление вашими персонажами, просмотр характеристик и инвентаря.
-                      </Typography>
-                      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
-                        <Button component={Link} to="/characters" variant="outlined" size="small">
-                          Перейти
-                        </Button>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                
-                {/* Секция для NPC (только для DM и админов) */}
-                {(isDungeonMaster || isAdmin || hasRole('Card Creator')) && (
-                  <Grid item xs={12} sm={6} md={4}>
-                    <Card sx={{ height: '100%' }}>
-                      <CardContent>
-                        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
-                          <Avatar sx={{ bgcolor: 'secondary.main' }}>
-                            <ViewListIcon />
-                          </Avatar>
-                        </Box>
-                        <Typography variant="h6" align="center" gutterBottom>
-                          NPC
-                        </Typography>
-                        <Typography variant="body2" align="center" color="text.secondary">
-                          Создание и управление неигровыми персонажами для ваших кампаний.
-                        </Typography>
-                        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
-                          <Button component={Link} to="/npcs" variant="outlined" size="small">
-                            Перейти
-                          </Button>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                )}
-                
-                {/* Секция для предметов (только для DM и админов) */}
-                {(isDungeonMaster || isAdmin || hasRole('Card Creator')) && (
-                  <Grid item xs={12} sm={6} md={4}>
-                    <Card sx={{ height: '100%' }}>
-                      <CardContent>
-                        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
-                          <Avatar sx={{ bgcolor: 'info.main' }}>
-                            <GavelIcon />
-                          </Avatar>
-                        </Box>
-                        <Typography variant="h6" align="center" gutterBottom>
-                          Предметы
-                        </Typography>
-                        <Typography variant="body2" align="center" color="text.secondary">
-                          Создание и управление предметами, оружием, артефактами и магическими вещами.
-                        </Typography>
-                        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
-                          <Button component={Link} to="/items" variant="outlined" size="small">
-                            Перейти
-                          </Button>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                )}
-                
-                <Grid item xs={12} sm={6} md={4}>
-                  <Card sx={{ height: '100%' }}>
-                    <CardContent>
-                      <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
-                        <Avatar sx={{ bgcolor
+export default Home;

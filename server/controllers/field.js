@@ -1,4 +1,5 @@
-const { Field, sequelize } = require('../models');
+const { Field, Sequelize } = require('../models');
+const Op = Sequelize.Op;
 
 // Получение всех полей
 exports.getAllFields = async (req, res) => {
@@ -9,7 +10,7 @@ exports.getAllFields = async (req, res) => {
     let where = {};
     if (cardType && ['character', 'npc', 'item'].includes(cardType)) {
       where = {
-        [sequelize.Op.or]: [
+        [Op.or]: [
           { cardType },
           { cardType: 'all' }
         ]
@@ -33,7 +34,7 @@ exports.getAllFields = async (req, res) => {
 
 // Создание нового поля
 exports.createField = async (req, res) => {
-  const transaction = await sequelize.transaction();
+  const transaction = await Sequelize.transaction();
   
   try {
     const { name, type, category, options, defaultValue, required, cardType, order } = req.body;
@@ -90,7 +91,7 @@ exports.createField = async (req, res) => {
 
 // Обновление поля
 exports.updateField = async (req, res) => {
-  const transaction = await sequelize.transaction();
+  const transaction = await Sequelize.transaction();
   
   try {
     const { fieldId } = req.params;
@@ -121,7 +122,7 @@ exports.updateField = async (req, res) => {
         where: {
           category: field.category,
           cardType: field.cardType,
-          id: { [sequelize.Op.ne]: field.id }
+          id: { [Op.ne]: field.id }
         },
         order: [['order', 'ASC']],
         transaction
@@ -155,7 +156,7 @@ exports.updateField = async (req, res) => {
 
 // Удаление поля
 exports.deleteField = async (req, res) => {
-  const transaction = await sequelize.transaction();
+  const transaction = await Sequelize.transaction();
   
   try {
     const { fieldId } = req.params;
@@ -173,12 +174,12 @@ exports.deleteField = async (req, res) => {
     
     // Обновление порядка оставшихся полей в той же категории
     await Field.update(
-      { order: sequelize.literal('order - 1') },
+      { order: Sequelize.literal('order - 1') },
       {
         where: {
           category,
           cardType,
-          order: { [sequelize.Op.gt]: order }
+          order: { [Op.gt]: order }
         },
         transaction
       }
