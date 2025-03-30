@@ -3,6 +3,25 @@ const { Group, User, Card, GroupBank, sequelize } = require('../models');
 // Получение всех групп пользователя
 exports.getUserGroups = async (req, res) => {
   try {
+    // Проверяем роль пользователя
+    const isAdmin = req.user.isAdmin;
+    const isDungeonMaster = req.user.roles.some(role => role.name === 'Dungeon Master');
+    
+    // Если пользователь администратор или DM, он может видеть все группы
+    if (isAdmin || isDungeonMaster) {
+      const allGroups = await Group.findAll({
+        include: [{ 
+          model: User, 
+          as: 'members',
+          through: { attributes: ['position'] }
+        }],
+        order: [['name', 'ASC']]
+      });
+      
+      return res.json(allGroups);
+    }
+    
+    // Обычные пользователи видят только группы, в которых они состоят
     const user = await User.findByPk(req.userId, {
       include: [{ 
         model: Group, 
@@ -23,14 +42,18 @@ exports.getGroup = async (req, res) => {
   try {
     const { groupId } = req.params;
     
+    // Проверяем роль пользователя
+    const isAdmin = req.user.isAdmin;
+    const isDungeonMaster = req.user.roles.some(role => role.name === 'Dungeon Master');
+    
     // Проверяем, является ли пользователь участником группы
     const isMember = await req.user.hasGroup(groupId);
     
-    if (!isMember && !req.user.isAdmin) {
-      const isDungeonMaster = req.user.roles.some(role => role.name === 'Dungeon Master');
-      if (!isDungeonMaster) {
-        return res.status(403).json({ message: 'У вас нет доступа к этой группе' });
-      }
+    // Доступ имеют только участники группы, администраторы и DM
+    if (!isMember && !isAdmin && !isDungeonMaster) {
+      return res.status(403).json({ 
+        message: 'У вас нет доступа к этой группе'
+      });
     }
     
     const group = await Group.findByPk(groupId, {
@@ -39,7 +62,7 @@ exports.getGroup = async (req, res) => {
           model: User, 
           as: 'members',
           through: { attributes: ['position'] },
-          attributes: ['id', 'username', 'avatar']
+          attributes: ['id', 'username', 'avatar', 'discordId']
         }
       ]
     });
@@ -276,5 +299,38 @@ exports.getGroupBank = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Ошибка при получении банка группы' });
+  }
+};
+
+// Удаление группы (только для администраторов)
+exports.deleteGroup = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  
+  try {
+    const { groupId } = req.params;
+    
+    const group = await Group.findByPk(groupId);
+    
+    if (!group) {
+      await transaction.rollback();
+      return res.status(404).json({ message: 'Группа не найдена' });
+    }
+    
+    // Проверка прав на удаление группы
+    if (!req.user.isAdmin) {
+      await transaction.rollback();
+      return res.status(403).json({ message: 'Только администратор может удалять группы' });
+    }
+    
+    // Удаление группы
+    await group.destroy({ transaction });
+    
+    await transaction.commit();
+    
+    res.json({ message: 'Группа успешно удалена' });
+  } catch (error) {
+    await transaction.rollback();
+    console.error(error);
+    res.status(500).json({ message: 'Ошибка при удалении группы' });
   }
 };

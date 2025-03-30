@@ -11,11 +11,14 @@ import {
   MonetizationOn as MoneyIcon,
   AccountBalance as BankIcon,
   Email as EmailIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  Settings as SettingsIcon,
+  Note as NoteIcon
 } from '@mui/icons-material';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getGroup, getGroupBank } from '../../api/groups';
+import { getGroup, getGroupBank, deleteGroup } from '../../api/groups';
 import { useAuth } from '../../context/AuthContext';
+import GroupNotes from '../../components/group/GroupNotes';
 
 // Компонент панели с контентом вкладки
 function TabPanel(props) {
@@ -47,6 +50,26 @@ const GroupDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [tabValue, setTabValue] = useState(0);
+
+  // Определение доступных вкладок
+  const getTabs = () => {
+    const tabs = [
+      { label: "Состав группы", id: "members" },
+      { label: "Хранилище группы", id: "storage" }
+    ];
+    
+    // Технические вкладки только для DM и администраторов
+    if (isDungeonMaster || isAdmin) {
+      tabs.push(
+        { label: "Заметки DM", id: "notes" },
+        { label: "Настройки", id: "settings" }
+      );
+    }
+    
+    return tabs;
+  };
+
+  const tabs = getTabs();
 
   // Загрузка данных группы и банка
   useEffect(() => {
@@ -106,6 +129,19 @@ const GroupDetail = () => {
     }
     return null;
   };
+  
+  // Обработчик удаления группы
+  const handleDeleteGroup = async () => {
+    if (window.confirm('Вы уверены, что хотите удалить эту группу? Это действие невозможно отменить.')) {
+      try {
+        await deleteGroup(groupId);
+        navigate('/groups');
+      } catch (err) {
+        console.error('Ошибка удаления группы:', err);
+        setError('Не удалось удалить группу. Пожалуйста, попробуйте позже.');
+      }
+    }
+  };
 
   if (loading) {
     return (
@@ -157,8 +193,8 @@ const GroupDetail = () => {
               {group.name}
             </Typography>
             
-            {canManageGroup() && (
-              <Box>
+            <Box>
+              {canManageGroup() && (
                 <Button
                   variant="contained"
                   color="primary"
@@ -169,6 +205,8 @@ const GroupDetail = () => {
                 >
                   Редактировать
                 </Button>
+              )}
+              {canManageGroup() && (
                 <Button
                   variant="outlined"
                   color="secondary"
@@ -178,8 +216,19 @@ const GroupDetail = () => {
                 >
                   Добавить участника
                 </Button>
-              </Box>
-            )}
+              )}
+              {isAdmin && (
+                <Button
+                  variant="contained"
+                  color="error"
+                  startIcon={<DeleteIcon />}
+                  onClick={handleDeleteGroup}
+                  sx={{ ml: 1 }}
+                >
+                  Удалить группу
+                </Button>
+              )}
+            </Box>
           </Box>
           
           {group.description && (
@@ -191,7 +240,7 @@ const GroupDetail = () => {
           <Box sx={{ display: 'flex', gap: 2 }}>
             <Chip 
               icon={<BankIcon />} 
-              label={`Банк: ${bankData?.totalBalance || 0} монет`} 
+              label={`Хранилище: ${bankData?.totalBalance || 0} монет`} 
               color="primary"
               variant="outlined"
             />
@@ -212,8 +261,9 @@ const GroupDetail = () => {
             onChange={handleTabChange}
             variant="fullWidth"
           >
-            <Tab label="Состав группы" />
-            <Tab label="Банк группы" />
+            {tabs.map((tab, index) => (
+              <Tab key={tab.id} label={tab.label} />
+            ))}
           </Tabs>
           
           {/* Вкладка состава группы */}
@@ -261,24 +311,24 @@ const GroupDetail = () => {
             </List>
           </TabPanel>
           
-          {/* Вкладка банка группы */}
+          {/* Вкладка хранилища группы */}
           <TabPanel value={tabValue} index={1}>
             <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography variant="h6">
-                Баланс группы: {bankData?.totalBalance || 0} монет
+                Баланс хранилища: {bankData?.totalBalance || 0} монет
               </Typography>
               
-              {(isAdmin || isDungeonMaster) && (
-                <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={<MoneyIcon />}
-                  component={Link}
-                  to={`/groups/${groupId}/bank/add`}
-                >
-                  Добавить транзакцию
-                </Button>
-              )}
+			{(isAdmin || isDungeonMaster) && (
+			  <Button
+				variant="contained"
+				color="primary"
+				startIcon={<MoneyIcon />}
+				component={Link}
+				to={`/groups/${groupId}/storage`}
+			  >
+				Добавить транзакцию
+			  </Button>
+			)}
             </Box>
             
             <Divider sx={{ mb: 2 }} />
@@ -315,10 +365,42 @@ const GroupDetail = () => {
               </List>
             ) : (
               <Typography variant="body1" align="center" sx={{ py: 4 }}>
-                История банка пуста
+                История хранилища пуста
               </Typography>
             )}
           </TabPanel>
+          
+          {/* Вкладка заметок DM - только для DM и администраторов */}
+          {(isDungeonMaster || isAdmin) && (
+            <TabPanel value={tabValue} index={2}>
+              <GroupNotes groupId={groupId} />
+            </TabPanel>
+          )}
+          
+          {/* Вкладка настроек - только для DM и администраторов */}
+          {(isDungeonMaster || isAdmin) && (
+            <TabPanel value={tabValue} index={3}>
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="h6" gutterBottom>
+                  Настройки группы
+                </Typography>
+                <Typography variant="body1" paragraph>
+                  Здесь вы можете управлять дополнительными настройками группы, доступными только для Dungeon Master и администраторов.
+                </Typography>
+                
+                <Paper sx={{ p: 3, bgcolor: 'background.paper' }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Технические настройки
+                  </Typography>
+                  
+                  {/* Здесь будут различные настройки группы */}
+                  <Typography variant="body2" color="text.secondary">
+                    В данный момент дополнительные настройки недоступны.
+                  </Typography>
+                </Paper>
+              </Box>
+            </TabPanel>
+          )}
         </Box>
       </Paper>
       

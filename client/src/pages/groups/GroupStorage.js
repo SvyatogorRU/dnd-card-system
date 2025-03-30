@@ -3,7 +3,7 @@ import {
   Container, Typography, Paper, Box, Button, CircularProgress,
   List, ListItem, ListItemAvatar, ListItemText, Avatar, Divider,
   TextField, FormControl, InputLabel, Select, MenuItem, Alert,
-  Card, CardContent, IconButton, Grid
+  Card, CardContent, IconButton, Grid, Chip
 } from '@mui/material';
 import {
   MonetizationOn as MoneyIcon,
@@ -16,8 +16,9 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getGroup, getGroupBank, updateGroupBank } from '../../api/groups';
 import { useAuth } from '../../context/AuthContext';
 import { getCardsByType } from '../../api/cards';
+import GroupStorageHistory from '../../components/group/GroupStorageHistory';
 
-const GroupBank = () => {
+const GroupStorage = () => {
   const { groupId } = useParams();
   const navigate = useNavigate();
   const { isAdmin, isDungeonMaster } = useAuth();
@@ -114,8 +115,8 @@ const GroupBank = () => {
       setShowForm(false);
       setError(null);
     } catch (err) {
-      console.error('Ошибка обновления банка:', err);
-      setError('Не удалось обновить банк группы. Пожалуйста, попробуйте позже.');
+      console.error('Ошибка обновления хранилища:', err);
+      setError('Не удалось обновить хранилище группы. Пожалуйста, попробуйте позже.');
     } finally {
       setSubmitting(false);
     }
@@ -150,7 +151,7 @@ const GroupBank = () => {
       <Paper elevation={3} sx={{ p: 4, borderRadius: 2, mb: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h4" component="h1" gutterBottom>
-            Банк группы {group?.name}
+            Хранилище группы {group?.name}
           </Typography>
           {(isAdmin || isDungeonMaster) && (
             <Button
@@ -363,7 +364,7 @@ const GroupBank = () => {
         ) : (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography variant="body1" color="text.secondary">
-              История банка пуста
+              История хранилища пуста
             </Typography>
             {(isAdmin || isDungeonMaster) && !showForm && (
               <Button
@@ -378,8 +379,13 @@ const GroupBank = () => {
           </Box>
         )}
       </Paper>
+      
+      {/* История хранилища только для DM и администраторов */}
+      {(isAdmin || isDungeonMaster) && (
+        <GroupStorageHistory groupId={groupId} />
+      )}
     </Container>
   );
 };
 
-export default GroupBank;
+export default GroupStorage;

@@ -3,13 +3,15 @@ import {
   Box, Typography, Button, IconButton, List, ListItem, ListItemText, 
   ListItemSecondaryAction, Divider, Paper, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField, FormControlLabel, Checkbox,
-  Chip, CircularProgress, Alert, Card, CardContent, Grid
+  Chip, CircularProgress, Alert, Card, CardContent, Grid, InputAdornment, 
+  FormControl, InputLabel, Select, MenuItem, Autocomplete
 } from '@mui/material';
 import { 
   Add as AddIcon, 
   Delete as DeleteIcon, 
   Edit as EditIcon,
-  Inventory as InventoryIcon
+  Inventory as InventoryIcon,
+  Search as SearchIcon
 } from '@mui/icons-material';
 import { getCardItems, addItemToCard, updateCardItem, removeItemFromCard } from '../../api/cardItems';
 import { getCardsByType } from '../../api/cards';
@@ -19,6 +21,7 @@ const CardItems = ({ card, isEditable }) => {
   const { isAdmin, isDungeonMaster } = useAuth();
   const [items, setItems] = useState([]);
   const [availableItems, setAvailableItems] = useState([]);
+  const [filteredItems, setFilteredItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState(null);
@@ -31,6 +34,8 @@ const CardItems = ({ card, isEditable }) => {
     equipped: false,
     notes: ''
   });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filter, setFilter] = useState('all');
 
   // Загрузка предметов карточки
   useEffect(() => {
@@ -61,11 +66,35 @@ const CardItems = ({ card, isEditable }) => {
       const alreadyAddedIds = items.map(item => item.id);
       const availableItems = allItems.filter(item => !alreadyAddedIds.includes(item.id));
       setAvailableItems(availableItems);
+      setFilteredItems(availableItems);
     } catch (err) {
       console.error('Ошибка загрузки доступных предметов:', err);
       setError('Не удалось загрузить доступные предметы.');
     }
   };
+  
+  // Фильтрация предметов
+  useEffect(() => {
+    if (!availableItems.length) return;
+
+    let result = [...availableItems];
+    
+    // Применение поиска
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      result = result.filter(item => 
+        item.name.toLowerCase().includes(searchLower) || 
+        (item.content?.item_description && item.content.item_description.toLowerCase().includes(searchLower))
+      );
+    }
+    
+    // Применение фильтра по типу предмета
+    if (filter !== 'all') {
+      result = result.filter(item => item.content?.item_type === filter);
+    }
+    
+    setFilteredItems(result);
+  }, [searchTerm, filter, availableItems]);
 
   // Открытие диалога добавления предмета
   const handleOpenAddDialog = () => {
@@ -76,6 +105,8 @@ const CardItems = ({ card, isEditable }) => {
       equipped: false,
       notes: ''
     });
+    setSearchTerm('');
+    setFilter('all');
     setDialogOpen(true);
   };
 
@@ -121,6 +152,26 @@ const CardItems = ({ card, isEditable }) => {
       setFormValues(prev => ({
         ...prev,
         [name]: value
+      }));
+    }
+  };
+  
+  // Обработчик изменения поиска
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+  
+  // Обработчик изменения фильтра
+  const handleFilterChange = (e) => {
+    setFilter(e.target.value);
+  };
+
+  // Обработчик выбора предмета из автозаполнения
+  const handleItemSelect = (event, item) => {
+    if (item) {
+      setFormValues(prev => ({
+        ...prev,
+        itemId: item.id
       }));
     }
   };
@@ -210,6 +261,16 @@ const CardItems = ({ card, isEditable }) => {
     if (isDungeonMaster) return true;
     // Владелец карточки может редактировать свои предметы
     return card.userId === (JSON.parse(localStorage.getItem('user'))?.id);
+  };
+
+  // Получение списка уникальных типов предметов для фильтрации
+  const getItemTypes = () => {
+    const types = availableItems
+      .map(item => item.content?.item_type)
+      .filter(type => type) // Отфильтровываем undefined и null
+    
+    // Удаляем дубликаты
+    return ['all', ...new Set(types)];
   };
 
   if (loading) {
@@ -354,17 +415,83 @@ const CardItems = ({ card, isEditable }) => {
       >
         <DialogTitle>Добавить предмет</DialogTitle>
         <DialogContent dividers>
-          {availableItems.length === 0 ? (
+          {/* Поиск и фильтрация */}
+          <Box sx={{ mb: 3 }}>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={8}>
+                <TextField
+                  fullWidth
+                  label="Поиск предмета"
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <FormControl fullWidth>
+                  <InputLabel id="item-type-filter-label">Тип предмета</InputLabel>
+                  <Select
+                    labelId="item-type-filter-label"
+                    value={filter}
+                    onChange={handleFilterChange}
+                    label="Тип предмета"
+                  >
+                    <MenuItem value="all">Все типы</MenuItem>
+                    {getItemTypes().filter(type => type !== 'all').map(type => (
+                      <MenuItem key={type} value={type}>{type}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
+          </Box>
+
+          {/* Автозаполнение для выбора предмета */}
+          <Autocomplete
+            id="item-autocomplete"
+            options={filteredItems}
+            getOptionLabel={(option) => option.name}
+            onChange={handleItemSelect}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Выберите предмет"
+                fullWidth
+                margin="normal"
+              />
+            )}
+            renderOption={(props, option) => (
+              <li {...props}>
+                <Box>
+                  <Typography variant="body1">{option.name}</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {option.content?.item_type && `Тип: ${option.content.item_type}`}
+                    {option.content?.rarity && ` | Редкость: ${option.content.rarity}`}
+                  </Typography>
+                </Box>
+              </li>
+            )}
+          />
+
+          {filteredItems.length === 0 ? (
             <Typography variant="body1" align="center" sx={{ py: 2 }}>
-              Нет доступных предметов для добавления
+              {availableItems.length === 0 ? 
+                "Нет доступных предметов для добавления" : 
+                "Не найдено предметов по указанным критериям"}
             </Typography>
           ) : (
             <>
-              <Typography variant="subtitle1" gutterBottom>
+              <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
                 Выберите предмет:
               </Typography>
               <Grid container spacing={2} sx={{ mb: 3 }}>
-                {availableItems.map(item => (
+                {filteredItems.slice(0, 6).map(item => (
                   <Grid item xs={12} sm={6} md={4} key={item.id}>
                     <Card 
                       variant={formValues.itemId === item.id ? "elevation" : "outlined"}
@@ -392,6 +519,13 @@ const CardItems = ({ card, isEditable }) => {
                     </Card>
                   </Grid>
                 ))}
+                {filteredItems.length > 6 && (
+                  <Grid item xs={12}>
+                    <Typography variant="body2" color="text.secondary" align="center">
+                      Показано 6 из {filteredItems.length} найденных предметов. Используйте поиск для уточнения.
+                    </Typography>
+                  </Grid>
+                )}
               </Grid>
               
               <Box sx={{ mt: 2 }}>

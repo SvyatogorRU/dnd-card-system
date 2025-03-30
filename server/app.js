@@ -10,6 +10,7 @@ const cardRoutes = require('./routes/card');
 const adminRoutes = require('./routes/admin');
 const userRoutes = require('./routes/user');
 const groupRoutes = require('./routes/group');
+const dbStatsRoutes = require('./routes/dbStats');
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use('/api/cards', cardRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/groups', groupRoutes);
+app.use('/api/db-stats', dbStatsRoutes);
 
 // Обработка ошибок
 app.use((err, req, res, next) => {

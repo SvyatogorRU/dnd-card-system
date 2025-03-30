@@ -20,8 +20,9 @@ import ItemsList from './pages/cards/ItemsList';
 import GroupsList from './pages/groups/GroupsList';
 import GroupDetail from './pages/groups/GroupDetail';
 import GroupForm from './pages/groups/GroupForm';
-import GroupBank from './pages/groups/GroupBank';
+import GroupStorage from './pages/groups/GroupStorage';
 import Profile from './pages/Profile';
+import Database from './pages/admin/Database';
 
 // Создание темы
 const theme = createTheme({
@@ -226,12 +227,12 @@ const App = () => {
               </RoleRoute>
             } />
             
-            {/* Маршрут для банка группы */}
-            <Route path="/groups/:groupId/bank" element={
-              <ProtectedRoute>
-                <GroupBank />
-              </ProtectedRoute>
-            } />
+			{/* Маршрут для хранилища группы */}
+				<Route path="/groups/:groupId/storage" element={
+					<ProtectedRoute>
+				<GroupStorage />
+				</ProtectedRoute>
+			} />
             
             {/* Административные маршруты */}
             <Route path="/admin" element={
@@ -257,6 +258,11 @@ const App = () => {
                 <FieldManagement />
               </AdminRoute>
             } />
+			<Route path="/admin/database" element={
+			  <AdminRoute>
+				<Database />
+			  </AdminRoute>
+			} />
             
             {/* Маршрут "404" */}
             <Route path="*" element={<Navigate to="/" replace />} />

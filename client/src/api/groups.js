@@ -184,6 +184,28 @@ export const deleteGroupNote = async (groupId, noteId) => {
   }
 };
 
+// Удаление группы
+export const deleteGroup = async (groupId) => {
+  try {
+    const response = await groupsApi.delete(`/${groupId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Ошибка удаления группы:', error);
+    throw error;
+  }
+};
+
+// Получение истории хранилища группы
+export const getGroupStorageHistory = async (groupId) => {
+  try {
+    const response = await groupsApi.get(`/${groupId}/storage/history`);
+    return response.data;
+  } catch (error) {
+    console.error('Ошибка получения истории хранилища:', error);
+    throw error;
+  }
+};
+
 export default {
   getUserGroups,
   getGroup,
@@ -199,5 +221,7 @@ export default {
   getGroupNotes,
   createGroupNote,
   updateGroupNote,
-  deleteGroupNote
+  deleteGroupNote,
+  deleteGroup,
+  getGroupStorageHistory
 };

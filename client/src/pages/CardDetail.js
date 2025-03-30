@@ -7,13 +7,14 @@ import {
   Edit as EditIcon, 
   Delete as DeleteIcon,
   Public as PublicIcon,
-  Lock as LockIcon 
+  Lock as LockIcon,
+  Person as PersonIcon
 } from '@mui/icons-material';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getCard, deleteCard } from '../api/cards';
 import { getAllFields } from '../api/admin';
 import { useAuth } from '../context/AuthContext';
-import CardItems from '../components/card/CardItems'; // Импортируем компонент предметов
+import CardItems from '../components/card/CardItems';
 
 const CardDetail = () => {
   const { cardId } = useParams();
@@ -132,6 +133,16 @@ const CardDetail = () => {
     return '/dashboard';
   };
 
+  // Получение названия типа карточки
+  const getCardTypeName = (type) => {
+    switch (type) {
+      case 'character': return 'Персонаж';
+      case 'npc': return 'NPC';
+      case 'item': return 'Предмет';
+      default: return type;
+    }
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
@@ -197,6 +208,23 @@ const CardDetail = () => {
                 </Typography>
               )}
             </Box>
+            
+            {/* Информация о создателе */}
+            {card.owner && (
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <PersonIcon fontSize="small" sx={{ mr: 0.5, color: 'text.secondary' }} />
+                <Typography variant="body2" color="text.secondary">
+                  Создатель: {card.owner.username}
+                </Typography>
+              </Box>
+            )}
+            
+            <Chip 
+              label={getCardTypeName(card.type)}
+              color="primary"
+              size="small"
+              variant="outlined"
+            />
           </Box>
           
           <Box>
