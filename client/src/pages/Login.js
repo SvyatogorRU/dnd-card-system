@@ -11,10 +11,10 @@ const Login = () => {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
 
-  // Перенаправление на страницу дашборда, если пользователь уже аутентифицирован
+  // Перенаправление на главную страницу после успешной авторизации
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/dashboard');
+      navigate('/'); // Изменено с /dashboard на /
     }
   }, [isAuthenticated, navigate]);
 
@@ -30,7 +30,7 @@ const Login = () => {
         try {
           const { user } = await loginWithDiscord(code);
           setUser(user);
-          navigate('/dashboard');
+          navigate('/'); // Изменено с /dashboard на /
         } catch (err) {
           console.error('Ошибка авторизации:', err);
           setError('Не удалось авторизоваться через Discord. Пожалуйста, попробуйте снова.');

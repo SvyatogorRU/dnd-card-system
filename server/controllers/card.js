@@ -211,3 +211,254 @@ exports.getCardsByType = async (req, res) => {
     res.status(500).json({ message: 'Ошибка при получении карточек' });
   }
 };
+
+// НОВЫЕ МЕТОДЫ ДЛЯ РАБОТЫ С ПРЕДМЕТАМИ
+
+// Добавление предмета к карточке
+exports.addItemToCard = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  
+  try {
+    const { cardId } = req.params;
+    const { itemId, quantity = 1, equipped = false, notes } = req.body;
+    
+    // Проверка существования карточек
+    const card = await Card.findByPk(cardId);
+    const item = await Card.findByPk(itemId);
+    
+    if (!card) {
+      await transaction.rollback();
+      return res.status(404).json({ message: 'Карточка не найдена' });
+    }
+    
+    if (!item) {
+      await transaction.rollback();
+      return res.status(404).json({ message: 'Предмет не найден' });
+    }
+    
+    // Проверка, что itemId действительно является предметом
+    if (item.type !== 'item') {
+      await transaction.rollback();
+      return res.status(400).json({ message: 'Указанная карточка не является предметом' });
+    }
+    
+    // Проверка прав доступа
+    if (card.userId !== req.userId && !req.user.isAdmin) {
+      const isDungeonMaster = req.user.roles.some(role => role.name === 'Dungeon Master');
+      if (!isDungeonMaster) {
+        await transaction.rollback();
+        return res.status(403).json({ message: 'Нет прав на добавление предметов к этой карточке' });
+      }
+    }
+    
+    // Проверка, не добавлен ли уже предмет
+    const existingItem = await sequelize.models.CardItem.findOne({
+      where: {
+        cardId,
+        itemId
+      }
+    });
+    
+    if (existingItem) {
+      // Если предмет уже добавлен, обновляем количество и заметки
+      existingItem.quantity = quantity;
+      existingItem.equipped = equipped;
+      if (notes) existingItem.notes = notes;
+      
+      await existingItem.save({ transaction });
+    } else {
+      // Иначе создаем новую связь
+      await sequelize.models.CardItem.create({
+        cardId,
+        itemId,
+        quantity,
+        equipped,
+        notes
+      }, { transaction });
+    }
+    
+    await transaction.commit();
+    
+    res.status(201).json({ message: 'Предмет успешно добавлен к карточке' });
+  } catch (error) {
+    await transaction.rollback();
+    console.error(error);
+    res.status(500).json({ message: 'Ошибка при добавлении предмета к карточке' });
+  }
+};
+
+// Получение предметов карточки
+exports.getCardItems = async (req, res) => {
+  try {
+    const { cardId } = req.params;
+    
+    const card = await Card.findByPk(cardId);
+    
+    if (!card) {
+      return res.status(404).json({ message: 'Карточка не найдена' });
+    }
+    
+    // Проверка прав доступа
+    if (card.userId !== req.userId && !card.public && !req.user.isAdmin) {
+      const isDungeonMaster = req.user.roles.some(role => role.name === 'Dungeon Master');
+      if (!isDungeonMaster) {
+        return res.status(403).json({ message: 'Нет доступа к этой карточке' });
+      }
+    }
+    
+    // Получаем предметы, включая связанные данные
+    const items = await card.getItems({
+      joinTableAttributes: ['quantity', 'equipped', 'notes'],
+      include: [
+        { model: User, as: 'owner', attributes: ['id', 'username'] }
+      ]
+    });
+    
+    res.json(items);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Ошибка при получении предметов карточки' });
+  }
+};
+
+// Удаление предмета из карточки
+exports.removeItemFromCard = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  
+  try {
+    const { cardId, itemId } = req.params;
+    
+    const card = await Card.findByPk(cardId);
+    
+    if (!card) {
+      await transaction.rollback();
+      return res.status(404).json({ message: 'Карточка не найдена' });
+    }
+    
+    // Проверка прав доступа
+    if (card.userId !== req.userId && !req.user.isAdmin) {
+      const isDungeonMaster = req.user.roles.some(role => role.name === 'Dungeon Master');
+      if (!isDungeonMaster) {
+        await transaction.rollback();
+        return res.status(403).json({ message: 'Нет прав на удаление предметов из этой карточки' });
+      }
+    }
+    
+    // Удаление связи
+    const removed = await sequelize.models.CardItem.destroy({
+      where: {
+        cardId,
+        itemId
+      },
+      transaction
+    });
+    
+    if (removed === 0) {
+      await transaction.rollback();
+      return res.status(404).json({ message: 'Предмет не найден в карточке' });
+    }
+    
+    await transaction.commit();
+    
+    res.json({ message: 'Предмет успешно удален из карточки' });
+  } catch (error) {
+    await transaction.rollback();
+    console.error(error);
+    res.status(500).json({ message: 'Ошибка при удалении предмета из карточки' });
+  }
+};
+
+// Обновление настроек предмета в карточке
+exports.updateCardItem = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  
+  try {
+    const { cardId, itemId } = req.params;
+    const { quantity, equipped, notes } = req.body;
+    
+    const card = await Card.findByPk(cardId);
+    
+    if (!card) {
+      await transaction.rollback();
+      return res.status(404).json({ message: 'Карточка не найдена' });
+    }
+    
+    // Проверка прав доступа
+    if (card.userId !== req.userId && !req.user.isAdmin) {
+      const isDungeonMaster = req.user.roles.some(role => role.name === 'Dungeon Master');
+      if (!isDungeonMaster) {
+        await transaction.rollback();
+        return res.status(403).json({ message: 'Нет прав на обновление предметов в этой карточке' });
+      }
+    }
+    
+    // Поиск связи
+    const cardItem = await sequelize.models.CardItem.findOne({
+      where: {
+        cardId,
+        itemId
+      }
+    });
+    
+    if (!cardItem) {
+      await transaction.rollback();
+      return res.status(404).json({ message: 'Предмет не найден в карточке' });
+    }
+    
+    // Обновление связи
+    if (quantity !== undefined) cardItem.quantity = quantity;
+    if (equipped !== undefined) cardItem.equipped = equipped;
+    if (notes !== undefined) cardItem.notes = notes;
+    
+    await cardItem.save({ transaction });
+    
+    await transaction.commit();
+    
+    res.json(cardItem);
+  } catch (error) {
+    await transaction.rollback();
+    console.error(error);
+    res.status(500).json({ message: 'Ошибка при обновлении предмета в карточке' });
+  }
+};
+
+// Получение карточек, в которых используется предмет
+exports.getItemUsage = async (req, res) => {
+  try {
+    const { itemId } = req.params;
+    
+    const item = await Card.findByPk(itemId);
+    
+    if (!item) {
+      return res.status(404).json({ message: 'Предмет не найден' });
+    }
+    
+    // Проверка, что это предмет
+    if (item.type !== 'item') {
+      return res.status(400).json({ message: 'Указанная карточка не является предметом' });
+    }
+    
+    // Проверка прав доступа для просмотра использования предмета
+    if (item.userId !== req.userId && !req.user.isAdmin) {
+      const isDungeonMaster = req.user.roles.some(role => role.name === 'Dungeon Master');
+      if (!isDungeonMaster) {
+        return res.status(403).json({ message: 'Нет прав на просмотр использования этого предмета' });
+      }
+    }
+    
+    // Получаем карточки, использующие этот предмет
+    const cards = await item.getUsedInCards({
+      joinTableAttributes: ['quantity', 'equipped', 'notes'],
+      include: [
+        { model: User, as: 'owner', attributes: ['id', 'username'] }
+      ]
+    });
+    
+    res.json(cards);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Ошибка при получении использования предмета' });
+  }
+};
+
+module.exports = exports;

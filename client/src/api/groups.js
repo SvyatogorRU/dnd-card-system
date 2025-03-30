@@ -74,6 +74,17 @@ export const addUserToGroup = async (groupId, userData) => {
   }
 };
 
+// Удаление пользователя из группы
+export const removeUserFromGroup = async (groupId, userId) => {
+  try {
+    const response = await groupsApi.delete(`/${groupId}/members/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Ошибка удаления пользователя из группы:', error);
+    throw error;
+  }
+};
+
 // Получение истории банка группы
 export const getGroupBank = async (groupId) => {
   try {
@@ -96,12 +107,31 @@ export const updateGroupBank = async (groupId, bankData) => {
   }
 };
 
-export default {
-  getUserGroups,
-  getGroup,
-  createGroup,
-  updateGroup,
-  addUserToGroup,
-  getGroupBank,
-  updateGroupBank
+// Получение предметов группы
+export const getGroupItems = async (groupId) => {
+  try {
+    const response = await groupsApi.get(`/${groupId}/items`);
+    return response.data;
+  } catch (error) {
+    console.error('Ошибка получения предметов группы:', error);
+    throw error;
+  }
 };
+
+// Добавление предмета в группу
+export const addItemToGroup = async (groupId, itemData) => {
+  try {
+    const response = await groupsApi.post(`/${groupId}/items`, itemData);
+    return response.data;
+  } catch (error) {
+    console.error('Ошибка добавления предмета в группу:', error);
+    throw error;
+  }
+};
+
+// Удаление предмета из группы
+export const removeItemFromGroup = async (groupId, itemId) => {
+  try {
+    const response = await groupsApi.delete(`/${groupId}/items/${itemId}`);
+    return response.data;
+  } catch (error) {

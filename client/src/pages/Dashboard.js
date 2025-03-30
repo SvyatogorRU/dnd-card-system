@@ -6,7 +6,7 @@ import { getUserCards, deleteCard } from '../api/cards';
 import { useAuth } from '../context/AuthContext';
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, isAdmin, isDungeonMaster, hasRole } = useAuth();
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -34,12 +34,31 @@ const Dashboard = () => {
     if (window.confirm('Вы уверены, что хотите удалить эту карточку?')) {
       try {
         await deleteCard(cardId);
-        setCards(cards.filter(card => card._id !== cardId));
+        setCards(cards.filter(card => card.id !== cardId));
       } catch (err) {
         console.error('Ошибка удаления карточки:', err);
         alert('Не удалось удалить карточку. Пожалуйста, попробуйте позже.');
       }
     }
+  };
+
+  // Проверка прав на создание карточки
+  const canCreateCard = () => {
+    return isAdmin || isDungeonMaster || hasRole('Card Creator');
+  };
+
+  // Проверка прав на удаление карточки
+  const canDeleteCard = (card) => {
+    // Администратор может удалять любые карточки
+    if (isAdmin) return true;
+    
+    // Dungeon Master может удалять только NPC и предметы, но не персонажей
+    if (isDungeonMaster) {
+      return card.type !== 'character' || card.userId === user?.id;
+    }
+    
+    // Пользователь может удалять только свои карточки
+    return card.userId === user?.id;
   };
 
   if (loading) {
@@ -56,15 +75,17 @@ const Dashboard = () => {
         <Typography variant="h4" component="h1" gutterBottom>
           Мои карточки
         </Typography>
-        <Button
-          component={Link}
-          to="/cards/new"
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-        >
-          Создать карточку
-        </Button>
+        {canCreateCard() && (
+          <Button
+            component={Link}
+            to="/characters/new"
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+          >
+            Создать карточку
+          </Button>
+        )}
       </Box>
 
       {error && (
@@ -78,18 +99,23 @@ const Dashboard = () => {
           <Typography variant="h6" color="text.secondary" gutterBottom>
             У вас пока нет карточек
           </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-            Нажмите "Создать карточку", чтобы начать
-          </Typography>
+          {canCreateCard() && (
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              Нажмите "Создать карточку", чтобы начать
+            </Typography>
+          )}
         </Box>
       ) : (
         <Grid container spacing={3}>
           {cards.map((card) => (
-            <Grid item xs={12} sm={6} md={4} key={card._id}>
+            <Grid item xs={12} sm={6} md={4} key={card.id}>
               <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Typography variant="h5" component="h2" gutterBottom>
                     {card.name}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Тип: {card.type === 'character' ? 'Персонаж' : card.type === 'npc' ? 'NPC' : 'Предмет'}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Создано: {new Date(card.createdAt).toLocaleDateString()}
@@ -98,7 +124,7 @@ const Dashboard = () => {
                 <CardActions>
                   <IconButton 
                     component={Link} 
-                    to={`/cards/${card._id}`} 
+                    to={`/${card.type === 'character' ? 'characters' : card.type === 'npc' ? 'npcs' : 'items'}/${card.id}`} 
                     aria-label="просмотр"
                     color="primary"
                   >
@@ -106,19 +132,21 @@ const Dashboard = () => {
                   </IconButton>
                   <IconButton 
                     component={Link} 
-                    to={`/cards/${card._id}/edit`} 
+                    to={`/${card.type === 'character' ? 'characters' : card.type === 'npc' ? 'npcs' : 'items'}/${card.id}/edit`} 
                     aria-label="редактировать"
                     color="secondary"
                   >
                     <EditIcon />
                   </IconButton>
-                  <IconButton 
-                    onClick={() => handleDeleteCard(card._id)} 
-                    aria-label="удалить"
-                    color="error"
-                  >
-                    <DeleteIcon />
-                  </IconButton>
+                  {canDeleteCard(card) && (
+                    <IconButton 
+                      onClick={() => handleDeleteCard(card.id)} 
+                      aria-label="удалить"
+                      color="error"
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  )}
                 </CardActions>
               </Card>
             </Grid>

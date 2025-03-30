@@ -25,6 +25,8 @@ module.exports = (sequelize, DataTypes) => {
 
   Card.associate = function(models) {
     Card.belongsTo(models.User, { foreignKey: 'userId', as: 'owner' });
+    
+    // Существующие связи
     Card.belongsToMany(models.Card, { 
       through: 'CardRelations', 
       as: 'linkedItems', 
@@ -38,6 +40,20 @@ module.exports = (sequelize, DataTypes) => {
       otherKey: 'cardId' 
     });
     Card.belongsToMany(models.Group, { through: 'GroupCards', foreignKey: 'cardId', as: 'groups' });
+    
+    // Новые связи для предметов
+    Card.belongsToMany(models.Card, { 
+      through: 'CardItems', 
+      as: 'items', 
+      foreignKey: 'cardId', 
+      otherKey: 'itemId' 
+    });
+    Card.belongsToMany(models.Card, { 
+      through: 'CardItems', 
+      as: 'usedInCards', 
+      foreignKey: 'itemId', 
+      otherKey: 'cardId' 
+    });
   };
 
   return Card;

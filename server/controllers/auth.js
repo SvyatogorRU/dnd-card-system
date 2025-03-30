@@ -73,6 +73,8 @@ exports.discordAuth = async (req, res) => {
         await user.addRole(adminRole);
       }
     }
+    // Для новых пользователей не добавляем никаких ролей по умолчанию
+    // Роли будут назначаться администратором вручную
 
     // Получаем роли пользователя
     const userRoles = await user.getRoles();

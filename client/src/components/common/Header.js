@@ -1,13 +1,16 @@
 import React from 'react';
 import { AppBar, Toolbar, Typography, Button, IconButton, Menu, MenuItem, Avatar, Box, Divider } from '@mui/material';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const Header = () => {
   const { user, isAuthenticated, isAdmin, isDungeonMaster, hasRole, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation(); // Получаем текущий URL
   const [anchorEl, setAnchorEl] = React.useState(null);
   const [menuAnchorEl, setMenuAnchorEl] = React.useState(null);
+
+  const isLoginPage = location.pathname === '/login'; // Проверяем, находимся ли на странице логина
 
   const handleMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -116,13 +119,16 @@ const Header = () => {
             </Menu>
           </>
         ) : (
-          <Button 
-            component={Link} 
-            to="/login" 
-            color="inherit"
-          >
-            Войти
-          </Button>
+          // Показываем кнопку "Войти" только если это не страница логина
+          !isLoginPage && (
+            <Button 
+              component={Link} 
+              to="/login" 
+              color="inherit"
+            >
+              Войти
+            </Button>
+          )
         )}
       </Toolbar>
     </AppBar>

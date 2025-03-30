@@ -20,6 +20,7 @@ import ItemsList from './pages/cards/ItemsList';
 import GroupsList from './pages/groups/GroupsList';
 import GroupDetail from './pages/groups/GroupDetail';
 import GroupForm from './pages/groups/GroupForm';
+import GroupBank from './pages/groups/GroupBank';
 import Profile from './pages/Profile';
 
 // Создание темы
@@ -111,16 +112,17 @@ const App = () => {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             
+            {/* Профиль пользователя */}
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } />
+            
             {/* Защищенные маршруты */}
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/profile" element={
-              <ProtectedRoute>
-                <Profile />
               </ProtectedRoute>
             } />
             
@@ -224,7 +226,14 @@ const App = () => {
               </RoleRoute>
             } />
             
-            {/* Админ-маршруты */}
+            {/* Маршрут для банка группы */}
+            <Route path="/groups/:groupId/bank" element={
+              <ProtectedRoute>
+                <GroupBank />
+              </ProtectedRoute>
+            } />
+            
+            {/* Административные маршруты */}
             <Route path="/admin" element={
               <AdminRoute>
                 <Admin />

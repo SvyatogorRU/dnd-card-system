@@ -13,6 +13,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getCard, deleteCard } from '../api/cards';
 import { getAllFields } from '../api/admin';
 import { useAuth } from '../context/AuthContext';
+import CardItems from '../components/card/CardItems'; // Импортируем компонент предметов
 
 const CardDetail = () => {
   const { cardId } = useParams();
@@ -255,6 +256,11 @@ const CardDetail = () => {
             </Box>
           );
         })}
+
+        {/* Компонент для предметов карточки */}
+        {(card.type === 'character' || card.type === 'npc') && (
+          <CardItems card={card} isEditable={true} />
+        )}
 
         <Box sx={{ mt: 4 }}>
           <Button 
